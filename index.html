@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PE Bilingual Buddy</title>
+<style>
+:root{--red:#ef3438;--blue:#1777e6;--navy:#17335d;--yellow:#ffe35a;--green:#72dc58}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Arial Rounded MT Bold","Trebuchet MS",Arial,sans-serif;color:var(--navy);
+background:linear-gradient(#75ddff 0 210px,#c8f77d 210px 100%);min-height:100vh}
+header{text-align:center;padding:16px 12px 10px}
+h1{margin:0;font-size:clamp(34px,6vw,68px);text-shadow:0 3px #fff;color:#174bbd}
+.subtitle{font-weight:900;font-size:clamp(16px,2vw,24px)}
+.searchwrap{max-width:800px;margin:14px auto;padding:0 16px}.searchbox{width:100%;padding:16px 20px;border:5px solid white;border-radius:25px;font-size:21px;font-weight:900;color:var(--navy);box-shadow:0 5px 0 rgba(0,0,0,.15);outline:none}.searchbox:focus{border-color:var(--yellow)}
+.topbar,.categories{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:12px auto;max-width:1200px;padding:0 12px}
+button{font-family:inherit}
+.mode,.cat,.utility{border:4px solid white;border-radius:22px;padding:12px 18px;font-size:18px;font-weight:900;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.15)}
+.mode.teacher{background:var(--red);color:white}.mode.student{background:var(--blue);color:white}
+.utility{background:white;color:var(--navy)} .cat{background:var(--yellow);color:var(--navy)}
+.cat.active{outline:5px solid var(--navy);transform:translateY(-2px)}
+#modeTitle{text-align:center;background:white;border-radius:24px;padding:12px;margin:12px auto;max-width:850px;border:4px solid var(--navy)}
+#modeTitle h2{margin:0;font-size:clamp(24px,3vw,36px)} #modeTitle p{margin:5px 0 0;font-weight:bold}
+#cards{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;max-width:1200px;margin:18px auto;padding:0 18px 30px}
+.phrase{min-height:125px;border:5px solid white;border-radius:28px;color:white;padding:14px;font-size:clamp(19px,2vw,27px);font-weight:900;
+cursor:pointer;box-shadow:0 7px 0 rgba(0,0,0,.18);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.phrase:active{transform:translateY(6px);box-shadow:none}.phrase.teacher{background:var(--red)}.phrase.student{background:var(--blue)}
+.emoji{font-size:40px}.speaker{font-size:24px;margin-top:6px}
+#status{position:fixed;left:50%;bottom:15px;transform:translateX(-50%);background:white;border:5px solid var(--yellow);
+border-radius:20px;padding:10px 18px;font-size:18px;font-weight:900;display:none;z-index:5;text-align:center;max-width:92%}
+footer{text-align:center;font-weight:900;font-size:20px;padding:10px 12px 28px}
+@media(max-width:850px){#cards{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){#cards{grid-template-columns:1fr}.phrase{min-height:105px}}
+</style>
+</head>
+<body>
+<header><h1>🏃 PE Bilingual Buddy ⚽</h1><div class="subtitle">Move ⭐ Learn ⭐ Be Kind ⭐ Have Fun!</div></header>
+
+<div class="topbar">
+<button class="mode teacher" onclick="setMode('teacher')">👩‍🏫 Teacher Mode</button>
+<button class="mode student" onclick="setMode('student')">🧒 Student Mode</button>
+<button class="utility" onclick="setRate(.8)">🐢 Slower</button>
+<button class="utility" onclick="setRate(1)">🙂 Normal</button>
+<button class="utility" onclick="speechSynthesis.cancel()">⏹ Stop</button>
+</div>
+
+<div class="searchwrap">
+<input id="search" class="searchbox" type="search" placeholder="🔎 Search English or Spanish..." aria-label="Search phrases" oninput="render()">
+</div>
+
+<div class="categories" id="categories"></div>
+
+<section id="modeTitle"><h2 id="title"></h2><p id="instruction"></p></section>
+<main id="cards"></main>
+<footer>⭐ Different Languages ❤️ Same Fun 😊 Stronger Together! ⭐</footer>
+<div id="status"></div>
+
+<script>
+const data = [
+["👋","Basics","Good morning!","¡Buenos días!"],
+["🙏","Basics","Please.","Por favor."],
+["❤️","Basics","Thank you.","Gracias."],
+["👍","Basics","I'm ready!","¡Estoy lista!"],
+["🌟","Basics","Good job!","¡Buen trabajo!"],
+["🤔","Basics","I don't understand.","No entiendo."],
+["🙋","Basics","I need help.","Necesito ayuda."],
+["😊","Basics","I feel good!","¡Me siento bien!"],
+["👉","Basics","Your turn.","Tu turno."],
+["🙋‍♀️","Basics","My turn.","Mi turno."],
+
+["🚻","Student Needs","Can I go to the bathroom?","¿Puedo ir al baño?"],
+["💧","Student Needs","Can I get a drink of water?","¿Puedo tomar agua?"],
+["🤕","Student Needs","Are you hurt?","¿Estás lastimada?"],
+["🙂","Student Needs","Are you okay?","¿Estás bien?"],
+["😴","Student Needs","I am tired.","Estoy cansada."],
+["🧘","Student Needs","Take a break.","Toma un descanso."],
+["🙋","Student Needs","I need help.","Necesito ayuda."],
+
+["🚶","PE Movements","Walk.","Camina."],
+["🏃‍♀️","PE Movements","Run.","Corre."],
+["🦘","PE Movements","Jump.","Salta."],
+["🧍","PE Movements","Freeze.","Quédate quieta."],
+["👣","PE Movements","Walk on each spot.","Camina sobre cada punto."],
+["⭕","PE Movements","Self space.","Espacio personal."],
+["↔️","PE Movements","General space.","Espacio general."],
+["💪","PE Movements","Be active.","Mantente activa."],
+["👀","PE Movements","Watch me.","Mírame."],
+["👂","PE Movements","Listen.","Escucha."],
+
+["⚽","Games","Do you play soccer?","¿Juegas al fútbol?"],
+["🥎","Games","Do you want to play catch?","¿Quieres jugar a atrapar la pelota?"],
+["🏷️","Games","Play tag.","Juega a la mancha."],
+["🎮","Games","Can we play a game?","¿Podemos jugar un juego?"],
+["🎉","Games","Go play.","Ve a jugar."],
+["🖍️","Games","Draw with chalk.","Dibuja con tiza."],
+["🛝","Games","Slide.","Tobogán."],
+["⭐","Games","Do you want to be my helper?","¿Quieres ser mi ayudante?"],
+
+["📍","Directions","Stand here.","Párate aquí."],
+["↩️","Directions","Go back.","Regresa."],
+["⬆️","Directions","Go forward.","Ve hacia adelante."],
+["⬅️","Directions","Go left.","Ve a la izquierda."],
+["➡️","Directions","Go right.","Ve a la derecha."],
+["⬆️","Directions","High level.","Nivel alto."],
+["↔️","Directions","Middle level.","Nivel medio."],
+["⬇️","Directions","Low level.","Nivel bajo."],
+["🧑‍🤝‍🧑","Directions","Find a partner.","Busca una pareja."],
+["⭕","Directions","Make a circle.","Hagan un círculo."],
+["🏠","Directions","Line up.","Haz fila."],
+["🧹","Directions","Clean up.","Recojan."],
+["🛑","Directions","Stop.","Para."],
+["🎯","Directions","Try again.","Inténtalo de nuevo."]
+];
+
+const cats=[["👋","Basics"],["🏃","PE Movements"],["🎮","Games"],["🚻","Student Needs"],["🧭","Directions"]];
+let mode="teacher", category="Basics", rate=1;
+const cards=document.getElementById("cards"), status=document.getElementById("status");
+function setRate(r){rate=r;toast(r<1?"🐢 Slower speech":"🙂 Normal speech")}
+function toast(t){status.textContent=t;status.style.display="block";clearTimeout(window.tt);window.tt=setTimeout(()=>status.style.display="none",1800)}
+function speak(text,lang){
+ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang=lang; u.rate=rate;
+ const v=speechSynthesis.getVoices().find(x=>x.lang.toLowerCase().startsWith(lang.slice(0,2)));
+ if(v)u.voice=v; speechSynthesis.speak(u); toast("🔊 "+text);
+}
+function setMode(m){mode=m;render()}
+function setCategory(c){category=c;document.getElementById("search").value="";render()}
+function render(){
+ document.getElementById("title").textContent=mode==="teacher"?"🔴 Teacher Mode":"🔵 Student Mode";
+ document.getElementById("instruction").textContent=mode==="teacher"?"Press an English phrase to hear it in Spanish.":"Presiona una frase en español para escucharla en inglés.";
+ const cb=document.getElementById("categories"); cb.innerHTML="";
+ cats.forEach(([e,c])=>{let b=document.createElement("button");b.className="cat"+(c===category?" active":"");b.textContent=e+" "+c;b.onclick=()=>setCategory(c);cb.appendChild(b)});
+ cards.innerHTML="";
+ const q=document.getElementById("search").value.trim().toLowerCase();
+ const visible=data.filter(x => q ? (x[2].toLowerCase().includes(q)||x[3].toLowerCase().includes(q)) : x[1]===category);
+ visible.forEach(([emoji,cat,en,es])=>{
+   let b=document.createElement("button"); b.className="phrase "+mode;
+   const label=mode==="teacher"?en:es, say=mode==="teacher"?es:en, lang=mode==="teacher"?"es-US":"en-US";
+   b.innerHTML=`<span class="emoji">${emoji}</span><span>${label}</span><span class="speaker">🔊</span>`;
+   b.onclick=()=>speak(say,lang); cards.appendChild(b);
+ });
+ if(!visible.length){
+   cards.innerHTML='<div style="grid-column:1/-1;background:white;border:4px solid var(--yellow);border-radius:24px;padding:25px;text-align:center;font-size:22px;font-weight:900">🤔 No phrase found. Try another word.</div>';
+ }
+}
+speechSynthesis.getVoices(); render();
+</script>
+</body></html>
